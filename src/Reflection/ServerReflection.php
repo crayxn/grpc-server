@@ -9,6 +9,7 @@ namespace Crayxn\GrpcServer\Reflection;
 
 use Crayxn\GrpcServer\Exception\GrpcServerException;
 use Crayxn\GrpcServer\ServerContext as Context;
+use Google\Protobuf\Internal\DescriptorPool;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\HttpServer\Router\DispatcherFactory;
@@ -43,7 +44,7 @@ class ServerReflection implements ServerReflectionInterface
             return;
         }
         //get servers
-        $this->servers = $this->services($config['server'] ?: 'grpc');
+        $this->servers = $this->services($config['server'] ?? 'grpc');
     }
 
     private function services(string $serverName): array

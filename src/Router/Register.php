@@ -22,7 +22,7 @@ class Register
     {
         $container = ApplicationContext::getContainer();
         $config = $container->get(ConfigInterface::class)->get('grpc', []);
-        Router::addServer($config['server'], function () use ($callback, $config) {
+        Router::addServer($config['server'] ?? 'grpc', function () use ($callback, $config) {
             $register = new self();
             //register reflection
             if ($config['reflection']['enable'] !== false) $register->register(ServerReflection::class);
