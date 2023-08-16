@@ -85,13 +85,13 @@ class ServerContext
             $payload = $this->container->get(ReqChannelDepository::class)
                 ->get($this->streamId)
                 ->pop();
-            if ($deserialize && $payload != ReqChannel::EOF) {
+            if ($deserialize && $payload) {
                 return \Hyperf\Grpc\Parser::deserializeMessage(is_array($deserialize) ? $deserialize : [$deserialize, 'mergeFromString'], $payload);
             }
             return $payload;
         } catch (\Throwable) {
         }
-        return ReqChannel::EOF;
+        return false;
     }
 
     /**

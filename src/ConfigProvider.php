@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Crayxn\GrpcServer;
 
 class ConfigProvider
@@ -28,6 +29,12 @@ class ConfigProvider
                 ],
             ],
             'publish' => [
+                [
+                    'id' => 'config',
+                    'description' => 'the config for grpc',
+                    'source' => __DIR__ . '/../publish/grpc.php',
+                    'destination' => BASE_PATH . '/config/autoload/grpc.php',
+                ],
             ],
         ];
     }

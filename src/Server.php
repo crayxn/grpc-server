@@ -75,7 +75,7 @@ class Server extends \Hyperf\GrpcServer\Server
 
             // close stream
             if ($frame->flags == Flags::END_STREAM) {
-                $channelDepository->get($frame->streamId)->push(ReqChannel::EOF);
+                $channelDepository->get($frame->streamId)->push(false);
             }
         }
     }

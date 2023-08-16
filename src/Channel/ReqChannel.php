@@ -16,8 +16,6 @@ use Swoole\Coroutine\Channel;
  */
 class ReqChannel
 {
-    public const EOF = 'EOF';
-
     private Channel $channel;
 
     public bool $active = true;
