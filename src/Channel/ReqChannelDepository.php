@@ -15,10 +15,10 @@ class ReqChannelDepository
     private array $cache = [];
 
     /**
-     * @param int $id
+     * @param string $id
      * @return ReqChannel
      */
-    public function get(int $id, int $capacity = 3): ReqChannel
+    public function get(string $id, int $capacity = 3): ReqChannel
     {
         if (!isset($this->cache[$id])) {
             $this->cache[$id] = new ReqChannel($id, $capacity);
@@ -27,10 +27,10 @@ class ReqChannelDepository
     }
 
     /**
-     * @param int $id
+     * @param string $id
      * @return bool
      */
-    public function remove(int $id): bool
+    public function remove(string $id): bool
     {
         if (isset($this->cache[$id])) {
             if ($this->cache[$id] instanceof ReqChannel && !$this->cache[$id]->close()) {
@@ -43,19 +43,19 @@ class ReqChannelDepository
     }
 
     /**
-     * @param int $id
+     * @param string $id
      * @return bool
      */
-    public function active(int $id): bool
+    public function active(string $id): bool
     {
         return isset($this->cache[$id]) ? $this->cache[$id]->active : false;
     }
 
     /**
-     * @param int $id
+     * @param string $id
      * @return void
      */
-    public function down(int $id): void
+    public function down(string $id): void
     {
         if (isset($this->cache[$id])) {
             $channel = $this->cache[$id];

@@ -20,7 +20,7 @@ class ReqChannel
 
     public bool $active = true;
 
-    public function __construct(public int $id, int $capacity = 10)
+    public function __construct(public string $id, int $capacity = 10)
     {
         // create receive channel
         $this->channel = new Channel($capacity);

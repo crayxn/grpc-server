@@ -12,6 +12,7 @@ use Crayoon\HyperfGrpc\Server\Http2Frame\Http2Frame;
 use Crayoon\HyperfGrpc\Server\Http2Stream\StreamManager;
 use Crayxn\GrpcServer\Channel\ReqChannel;
 use Crayxn\GrpcServer\Channel\ReqChannelDepository;
+use Crayxn\GrpcServer\Frame\Flags;
 use Crayxn\GrpcServer\Frame\Frame;
 use Crayxn\GrpcServer\Frame\Parser;
 use Crayxn\GrpcServer\Frame\src\DataFrame;
@@ -83,7 +84,7 @@ class ServerContext
     {
         try {
             $payload = $this->container->get(ReqChannelDepository::class)
-                ->get($this->streamId)
+                ->get("$this->fd:$this->streamId")
                 ->pop();
             if ($deserialize && $payload) {
                 return \Hyperf\Grpc\Parser::deserializeMessage(is_array($deserialize) ? $deserialize : [$deserialize, 'mergeFromString'], $payload);
@@ -105,7 +106,7 @@ class ServerContext
             $channelDepository = $this->container->get(ReqChannelDepository::class);
             $parser = $this->container->get(Parser::class);
             // check stream status
-            if (!$channelDepository->active($this->streamId)) {
+            if (!$channelDepository->active("$this->fd:$this->streamId")) {
                 return false;
             }
             $frames = [];
@@ -117,7 +118,7 @@ class ServerContext
             $frames[] = $parser->pack($frame);
             // send
             return !!$this->swooleServer->send($this->fd, implode('', $frames));
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
         }
         return false;
     }
@@ -141,7 +142,9 @@ class ServerContext
     public function end(int $status = StatusCode::OK, string $message = 'ok'): bool
     {
         try {
-            return $this->write(new HeaderFrame($this->streamId, true, $status, $message));
+            $this->write(new HeaderFrame($this->streamId, true, $status, $message));
+            $this->write(new Frame(pack('N', 0), Types::RST_STREAM, Flags::NONE, $this->streamId));
+            return true;
         } catch (\Throwable) {
         }
         return false;

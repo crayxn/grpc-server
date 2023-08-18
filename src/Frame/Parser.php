@@ -18,22 +18,27 @@ class Parser
 
     /**
      * @param string $frame_data
-     * @param null|Http2Frame[] $result
+     * @param array|null $result
+     * @return string
      * @throws Exception
      */
-    public function unpack(string $frame_data, ?array &$result): void
+    public function unpack(string $frame_data, ?array &$result): string
     {
         // end
-        if (strlen($frame_data) < 9) return;
+        if (strlen($frame_data) < 9) return $frame_data;
         // header
         $headers = unpack('Ctype/Cflags/NstreamId', substr($frame_data, 3, 6));
         // length
         $lengthPack = unpack('C3', substr($frame_data, 0, 3));
         $length = ($lengthPack[1] << 16) | ($lengthPack[2] << 8) | $lengthPack[3];
         // push
+        if($length > (strlen($frame_data) - 9)) {
+            return $frame_data;
+        }
         $result[] = new Frame(substr($frame_data, 9, $length), $headers['type'], $headers['flags'], $headers['streamId'] & 0x7FFFFFFF);
         // continue
-        if ('' != $next = substr($frame_data, $length + 9)) $this->unpack($next, $result);
+        if ('' != $next = substr($frame_data, $length + 9)) return $this->unpack($next, $result);
+        return '';
     }
 
     /**
