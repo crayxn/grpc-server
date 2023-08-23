@@ -8,7 +8,10 @@ declare(strict_types=1);
 return [
     "server" => "grpc",
     "reflection" => [
-        //是否开启服务反射 默认是true
-        "enable" => (bool)\Hyperf\Support\env("REFLECTION_ENABLE", true)
+        "enable" => (bool)\Hyperf\Support\env("GRPC_REFLECTION_ENABLE", true)
+    ],
+    "register" => [
+        "enable" => \Hyperf\Support\env("GRPC_REGISTER_ENABLE", true),
+        "driver" => \Hyperf\Support\env("GRPC_REGISTER_DRIVER", 'nacos'),
     ]
 ];

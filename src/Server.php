@@ -75,6 +75,9 @@ class Server extends \Hyperf\GrpcServer\Server
          * @var Frame $frame
          */
         foreach ($frames as $index => $frame) {
+            /**
+             * @var ReqChannel $channel
+             */
             $channel = $channelDepository->get("$fd:$frame->streamId");
             if ($frame->type == Types::HEADERS) {
                 // new request
@@ -146,7 +149,6 @@ class Server extends \Hyperf\GrpcServer\Server
             $response = $this->dispatcher->dispatch($psr7Request, $middlewares, $this->coreMiddleware);
 
             if ($response->getTrailer('grpc-status') == StatusCode::OK) {
-                var_dump('响应:' . $response->getBody()->getContents());
                 $context->emit($response->getBody()->getContents());
             }
             // close request

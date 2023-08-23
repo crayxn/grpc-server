@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @contact  crayxn@qq.com
  */
 
-namespace HyperfTest\GrpcServer\Frame\src;
+namespace HyperfTest\Frame\src;
 
 use Crayxn\GrpcServer\Frame\src\SettingFrame;
 use PHPUnit\Framework\TestCase;
