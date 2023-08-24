@@ -24,7 +24,6 @@ class ConfigProvider
             'commands' => [
             ],
             'listeners' => [
-                RegisterListener::class
             ],
             'annotations' => [
                 'scan' => [

@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Crayxn\GrpcServer;
 
-use Crayxn\GrpcServer\Channel\ReqChannel;
 use Google\Protobuf\Internal\Message as ProtobufMessage;
 use Hyperf\Context\Context;
 use Hyperf\Di\MethodDefinitionCollector;

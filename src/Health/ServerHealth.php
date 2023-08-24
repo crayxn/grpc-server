@@ -8,24 +8,24 @@ declare(strict_types=1);
 namespace Crayxn\GrpcServer\Health;
 
 use Crayxn\GrpcServer\Health\HealthCheckResponse\ServingStatus;
-use Crayxn\GrpcServer\Router\Register;
 use Crayxn\GrpcServer\ServerContext as Context;
+use Hyperf\ServiceGovernance\ServiceManager;
 
 class ServerHealth implements HealthInterface
 {
 
-    public function __construct(private Register $register)
+    public function __construct(private ServiceManager $serviceManager)
     {
     }
 
     public function Check(HealthCheckRequest $request): HealthCheckResponse
     {
-        return (new HealthCheckResponse())->setStatus(in_array($request->getService(), $this->register->services) ? ServingStatus::SERVING : ServingStatus::UNKNOWN);
+        return (new HealthCheckResponse())->setStatus(isset($this->serviceManager->all()[$request->getService()]) ? ServingStatus::SERVING : ServingStatus::UNKNOWN);
     }
 
     public function Watch(Context $context, HealthCheckRequest $request): void
     {
-        $status = in_array($request->getService(), $this->register->services) ? ServingStatus::SERVING : ServingStatus::UNKNOWN;
+        $status = isset($this->serviceManager->all()[$request->getService()]) ? ServingStatus::SERVING : ServingStatus::UNKNOWN;
         while (true === $context->getServer()->exist($context->getFd())) {
             $context->emit((new HealthCheckResponse())->setStatus($status));
             sleep(300);
