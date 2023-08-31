@@ -13,5 +13,6 @@ return [
     "register" => [
         "enable" => \Hyperf\Support\env("GRPC_REGISTER_ENABLE", true),
         "driver" => \Hyperf\Support\env("GRPC_REGISTER_DRIVER", 'nacos'),
+        "algorithm" => 'random'
     ]
 ];

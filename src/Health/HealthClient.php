@@ -10,7 +10,7 @@ use Crayxn\GrpcServer\Health\Request;
 
 class HealthClient extends \Crayxn\GrpcClient\AbstractClient
 {
-	public string $service = "grpc.health.v1.Health";
+	public static string $service = "grpc.health.v1.Health";
 
 
 	/**
