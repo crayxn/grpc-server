@@ -11,7 +11,7 @@ return [
         "enable" => (bool)\Hyperf\Support\env("GRPC_REFLECTION_ENABLE", true)
     ],
     "register" => [
-        "enable" => \Hyperf\Support\env("GRPC_REGISTER_ENABLE", true),
+        "enable" => \Hyperf\Support\env("GRPC_REGISTER_ENABLE", false),
         "driver" => \Hyperf\Support\env("GRPC_REGISTER_DRIVER", 'nacos'),
         "algorithm" => 'random'
     ]
