@@ -13,6 +13,9 @@ use Crayxn\GrpcServer\Exception\GrpcServerException;
 use Crayxn\GrpcServer\Frame\Flags;
 use Crayxn\GrpcServer\Frame\Frame;
 use Crayxn\GrpcServer\Frame\Parser;
+use Crayxn\GrpcServer\Frame\src\HeaderFrame;
+use Crayxn\GrpcServer\Frame\src\PongFrame;
+use Crayxn\GrpcServer\Frame\src\SettingFrame;
 use Crayxn\GrpcServer\Frame\Types;
 use Hyperf\Context\Context;
 use Hyperf\Contract\ConfigInterface;
@@ -57,14 +60,17 @@ class Server extends \Hyperf\GrpcServer\Server
      */
     public function onReceive(SwooleServer $server, int $fd, int $reactor_id, string $data): void
     {
+        $parser = $this->container->get(Parser::class);
         // wait
         if (isset($this->parserChannel[$fd]) && $this->parserChannel[$fd] instanceof Channel) {
             if (false !== $parserFailData = $this->parserChannel[$fd]->pop(3.0)) {
                 $data = $parserFailData . $data;
             }
+        } else {
+            // send setting
+            $server->send($fd, $parser->pack(new SettingFrame()));
         }
         $this->parserChannel[$fd] = new Channel(1);
-        $parser = $this->container->get(Parser::class);
         //get frames
         $this->parserChannel[$fd]->push($parser->unpack($parser->exceptUpgrade($data), $frames), 1.0);
         if (empty($frames)) return;
@@ -90,6 +96,9 @@ class Server extends \Hyperf\GrpcServer\Server
             } elseif ($frame->type == Types::GOAWAY || $frame->type == Types::RST_STREAM) {
                 //change state
                 $channelDepository->down("$fd:$frame->streamId");
+            } elseif ($frame->type == Types::PING) {
+                // Pong
+                $server->send($fd, $parser->pack(new PongFrame($frame->payload)));
             }
             unset($frames[$index]);
             // close stream

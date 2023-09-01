@@ -48,8 +48,6 @@ class ServerContext
     )
     {
         $this->container = ApplicationContext::getContainer();
-        // emit setting
-        $this->swooleServer->send($fd, $this->container->get(Parser::class)->pack(new SettingFrame()));
     }
 
     /**
