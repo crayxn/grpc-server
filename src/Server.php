@@ -20,20 +20,35 @@ use Hyperf\Context\Context;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Coordinator\Constants;
 use Hyperf\Coordinator\CoordinatorManager;
+use Hyperf\Dispatcher\HttpDispatcher;
 use Hyperf\Engine\Channel;
+use Hyperf\ExceptionHandler\ExceptionHandlerDispatcher;
 use Hyperf\Grpc\StatusCode;
 use Hyperf\GrpcServer\Exception\Handler\GrpcExceptionHandler;
+use Hyperf\GrpcServer\ResponseEmitter;
 use Hyperf\HttpMessage\Server\Request;
 use Hyperf\HttpMessage\Uri\Uri;
 use Hyperf\HttpServer\MiddlewareManager;
 use Hyperf\HttpServer\Router\Dispatched;
 use Hyperf\Support\SafeCaller;
+use Psr\Container\ContainerInterface;
 use Swoole\Http\Response;
 use Swoole\Server as SwooleServer;
 use Throwable;
 
 class Server extends \Hyperf\GrpcServer\Server
 {
+    protected ReqChannelDepository $reqChannelDepository;
+    protected Parser $parser;
+
+    public function __construct(ContainerInterface $container, HttpDispatcher $dispatcher, ExceptionHandlerDispatcher $exceptionHandlerDispatcher, ResponseEmitter $responseEmitter)
+    {
+        parent::__construct($container, $dispatcher, $exceptionHandlerDispatcher, $responseEmitter);
+
+        $this->reqChannelDepository = $this->container->get(ReqChannelDepository::class);
+        $this->parser = $this->container->get(Parser::class);
+    }
+
     public function initCoreMiddleware(string $serverName): void
     {
         $this->serverName = $serverName;
@@ -58,7 +73,6 @@ class Server extends \Hyperf\GrpcServer\Server
      */
     public function onReceive(SwooleServer $server, int $fd, int $reactor_id, string $data): void
     {
-        $parser = $this->container->get(Parser::class);
         // wait
         if (isset($this->parserChannel[$fd]) && $this->parserChannel[$fd] instanceof Channel) {
             if (false !== $parserFailData = $this->parserChannel[$fd]->pop(3.0)) {
@@ -66,14 +80,12 @@ class Server extends \Hyperf\GrpcServer\Server
             }
         } else {
             // send setting
-            $server->send($fd, $parser->pack(new SettingFrame()));
+            $server->send($fd, $this->parser->pack(new SettingFrame()));
         }
         $this->parserChannel[$fd] = new Channel(1);
         //get frames
-        $this->parserChannel[$fd]->push($parser->unpack($parser->exceptUpgrade($data), $frames), 1.0);
+        $this->parserChannel[$fd]->push($this->parser->unpack($this->parser->exceptUpgrade($data), $frames), 1.0);
         if (empty($frames)) return;
-
-        $channelDepository = $this->container->get(ReqChannelDepository::class);
 
         /**
          * @var Frame $frame
@@ -82,10 +94,10 @@ class Server extends \Hyperf\GrpcServer\Server
             /**
              * @var ReqChannel $channel
              */
-            $channel = $channelDepository->get("$fd:$frame->streamId");
+            $channel = $this->reqChannelDepository->get("$fd:$frame->streamId");
             if ($frame->type == Types::HEADERS) {
                 // new request
-                $frame->length > 0 && \Hyperf\Coroutine\go(function () use ($server, $fd, $frame) {
+                $frame->length > 0 && \Swoole\Coroutine\go(function () use ($server, $fd, $frame) {
                     $this->request($server, $fd, $frame);
                 });
             } elseif ($frame->type == Types::DATA) {
@@ -93,10 +105,10 @@ class Server extends \Hyperf\GrpcServer\Server
                 in_array($frame->flags, [Flags::NONE, Flags::END_STREAM]) && $frame->length > 0 && $channel->push($frame->payload);
             } elseif ($frame->type == Types::GOAWAY || $frame->type == Types::RST_STREAM) {
                 //change state
-                $channelDepository->down("$fd:$frame->streamId");
+                $this->reqChannelDepository->down("$fd:$frame->streamId");
             } elseif ($frame->type == Types::PING) {
                 // Pong
-                $server->send($fd, $parser->pack(new PongFrame($frame->payload)));
+                $server->send($fd, $this->parser->pack(new PongFrame($frame->payload)));
             }
             unset($frames[$index]);
             // close stream
@@ -121,16 +133,13 @@ class Server extends \Hyperf\GrpcServer\Server
      */
     public function request(SwooleServer $server, int $fd, Frame $headerFrame): void
     {
-        $channelDepository = $this->container->get(ReqChannelDepository::class);
-        $parser = $this->container->get(Parser::class);
-
         // set context
         $context = new ServerContext($server, $fd, $headerFrame->streamId);
         Context::set(ServerContext::class, $context);
         // new request
         // headers
         $swooleHeaders = [];
-        foreach ($parser->decodeHeaderFrame($headerFrame) ?? [] as [$key, $value]) {
+        foreach ($this->parser->decodeHeaderFrame($headerFrame) ?? [] as [$key, $value]) {
             $swooleHeaders[$key] = $value;
         }
         //create request
@@ -172,7 +181,7 @@ class Server extends \Hyperf\GrpcServer\Server
             }
         } finally {
             // close the data channel
-            $channelDepository->remove("$fd:$headerFrame->streamId");
+            $this->reqChannelDepository->remove("$fd:$headerFrame->streamId");
             //remove fd parser channel
             if (isset($this->parserChannel[$fd])) {
                 $this->parserChannel[$fd] instanceof Channel && $this->parserChannel[$fd]->close();
