@@ -43,8 +43,8 @@ class ServerContext
      */
     public function __construct(
         private SwooleServer $swooleServer,
-        private int          $fd,
-        private int          $streamId,
+        private int          $fd = 0,
+        private int          $streamId = 0,
     )
     {
         $this->container = ApplicationContext::getContainer();

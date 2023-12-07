@@ -5,18 +5,21 @@ declare(strict_types=1);
  * @contact  crayxn@qq.com
  */
 
-namespace Crayxn\GrpcServer\Router;
+namespace Crayxn\GrpcServer;
 
 use Crayxn\GrpcServer\Health\ServerHealth;
 use Crayxn\GrpcServer\Reflection\ServerReflection;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\HttpServer\Router\Router;
 use Hyperf\ServiceGovernance\ServiceManager;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Throwable;
 
-class Register
+class ServiceCenter
 {
     private ServiceManager $serviceManager;
     public array $config = [];
@@ -32,13 +35,15 @@ class Register
 
     /**
      * @param callable $callback function (Register $register)
+     * @param string|null $serverName
      * @return void
-     * @throws Throwable
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
-    public static function addServices(callable $callback): void
+    public static function addServices(callable $callback, ?string $serverName = null): void
     {
         $self = ApplicationContext::getContainer()->get(self::class);
-        Router::addServer($self->config['server'] ?? 'grpc', function () use ($callback, $self) {
+        Router::addServer($serverName ?? $self->config['server'] ?? 'grpc', function () use ($callback, $self) {
             //register reflection
             if ($self->config['reflection']['enable'] !== false) $self->register(ServerReflection::class, true);
             //register health
@@ -53,7 +58,7 @@ class Register
         try {
             $reflectionClass = new \ReflectionClass($class);
         } catch (\ReflectionException $e) {
-            //todo no work
+            $this->container->get(StdoutLoggerInterface::class)?->error("Can not reflection $class," . $e->getMessage());
             return $this;
         }
         if ($reflectionClass->hasConstant('METADATA_CLASS')) {
@@ -73,6 +78,10 @@ class Register
             }
             //register governance
             if (!$only_route && ($this->config['register']['enable'] ?? true)) {
+                //rename
+                if (($this->config['register']['service_name_func'] ?? null) instanceof \Closure) {
+                    $serviceName = $this->config['register']['service_name_func']($serviceName);
+                }
                 $this->serviceManager->register($serviceName, '', [
                     'protocol' => 'grpc',
                     'publishTo' => $publishTo ?: ($this->config['register']['driver'] ?? 'nacos'),

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Crayxn\GrpcServer;
 
 use Google\Protobuf\Internal\Message as ProtobufMessage;
+use \RuntimeException;
 use Hyperf\Context\Context;
 use Hyperf\Di\MethodDefinitionCollector;
 use Hyperf\Di\ReflectionManager;

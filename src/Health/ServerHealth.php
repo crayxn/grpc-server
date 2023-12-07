@@ -20,9 +20,7 @@ class ServerHealth implements HealthInterface
 
     public function Check(HealthCheckRequest $request): HealthCheckResponse
     {
-        return (new HealthCheckResponse())->setStatus(
-            ServingStatus::SERVING
-        );
+        return (new HealthCheckResponse())->setStatus(ServingStatus::SERVING);
     }
 
     public function Watch(Context $context, HealthCheckRequest $request): void
